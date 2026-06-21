@@ -1,4 +1,5 @@
 import Post from '../models/Post.js';
+import User from '../models/User.js';
 
 export const getFeed = async (req, res) => {
   try {
@@ -18,6 +19,124 @@ export const getFeed = async (req, res) => {
     res.status(200).json({
       success: true,
       posts: feed,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error, please try again',
+    });
+  }
+};
+
+export const likePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
+      });
+    }
+
+    const likeIndex = post.likes.findIndex(
+      (like) => like.userId.toString() === req.user.id
+    );
+
+    // already liked → remove (unlike)
+    if (likeIndex !== -1) {
+      post.likes.splice(likeIndex, 1);
+      await post.save();
+
+      return res.status(200).json({
+        success: true,
+        liked: false,
+        likesCount: post.likes.length,
+      });
+    }
+
+    // not liked yet → add like
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    post.likes.push({
+      userId: user._id,
+      username: user.username,
+    });
+
+    await post.save();
+
+    res.status(200).json({
+      success: true,
+      liked: true,
+      likesCount: post.likes.length,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error, please try again',
+    });
+  }
+};
+
+export const addComment = async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    if (!text || !text.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: 'Comment text is required',
+      });
+    }
+
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({
+        success: false,
+        message: 'Post not found',
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    post.comments.push({
+      userId: user._id,
+      username: user.username,
+      text: text.trim(),
+    });
+
+    await post.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Comment added',
+      post: {
+        id: post._id,
+        userId: post.userId,
+        username: post.username,
+        text: post.text,
+        image: post.image,
+        likes: post.likes,
+        comments: post.comments,
+        likesCount: post.likes.length,
+        commentsCount: post.comments.length,
+        createdAt: post.createdAt,
+      },
     });
   } catch (error) {
     res.status(500).json({
