@@ -1,5 +1,67 @@
 import Post from '../models/Post.js';
 import User from '../models/User.js';
+import imagekit from '../config/imagekit.js';
+
+export const createPost = async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    if (!text?.trim() && !req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'Text or image is required',
+      });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    let imageUrl = '';
+
+    if (req.file) {
+      const uploadResponse = await imagekit.upload({
+        file: req.file.buffer,
+        fileName: req.file.originalname,
+        folder: '/social-posts',
+      });
+
+      imageUrl = uploadResponse.url;
+    }
+
+    const post = await Post.create({
+      userId: user._id,
+      username: user.username,
+      text: text?.trim() || '',
+      image: imageUrl,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Post created',
+      post: {
+        id: post._id,
+        userId: post.userId,
+        username: post.username,
+        text: post.text,
+        image: post.image,
+        likesCount: 0,
+        commentsCount: 0,
+        createdAt: post.createdAt,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Server error, please try again',
+    });
+  }
+};
 
 export const getFeed = async (req, res) => {
   try {
