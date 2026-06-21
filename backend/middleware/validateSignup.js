@@ -26,4 +26,4 @@ const validateSignup = (req, res, next) => {
   next();
 };
 
-module.exports = validateSignup;
+export default validateSignup;

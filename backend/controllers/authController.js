@@ -1,7 +1,7 @@
-const bcrypt = require('bcrypt');
-const User = require('../models/User');
+import bcrypt from 'bcrypt';
+import User from '../models/User.js';
 
-const signup = async (req, res) => {
+export const signup = async (req, res) => {
   try {
     const { username, email, password } = req.body;
 
@@ -45,5 +45,3 @@ const signup = async (req, res) => {
     });
   }
 };
-
-module.exports = { signup };
