@@ -1,18 +1,18 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
-import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
-import App from './App.jsx';
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import { AuthProvider } from './context/AuthContext';
+import './index.css';
 
-const theme = createTheme();
-
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    <BrowserRouter>
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
-        <App />
-      </ThemeProvider>
-    </BrowserRouter>
-  </StrictMode>
+/**
+ * Create root React element and render app
+ * AuthProvider wraps entire app to provide authentication context globally
+ */
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    {/* AuthProvider makes auth state available to all components */}
+    <AuthProvider>
+      <App />
+    </AuthProvider>
+  </React.StrictMode>
 );
