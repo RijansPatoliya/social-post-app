@@ -12,7 +12,7 @@ export default defineConfig({
     // Proxy API calls to backend during development
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://social-post-app-6aoa.onrender.com',
         changeOrigin: true,
       },
     },

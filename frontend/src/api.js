@@ -1,7 +1,5 @@
 // All backend API calls are in this file.
-// The base URL is "/api" which Vite proxies to http://localhost:5000
-
-const BASE = '/api';
+const BASE = 'https://social-post-app-6aoa.onrender.com/api';
 
 // Read JWT token from localStorage
 const getToken = () => localStorage.getItem('token');
