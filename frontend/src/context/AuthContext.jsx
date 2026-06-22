@@ -1,101 +1,52 @@
-// ============================================
-// Authentication Context
-// ============================================
-// This file manages global authentication state
-// Used to keep track of logged-in user across entire app
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-import React, { createContext, useState, useEffect } from 'react';
+const AuthContext = createContext(null);
 
-// Create context for authentication
-export const AuthContext = createContext();
-
-/**
- * AuthProvider Component
- * Wraps the entire app and provides authentication state to all components
- */
 export const AuthProvider = ({ children }) => {
-  // State to store current user information
   const [user, setUser] = useState(null);
-  
-  // State to track loading status (useful for showing spinners)
   const [loading, setLoading] = useState(true);
 
-  // Check if user is already logged in when app loads
-  // This runs once when component mounts
+  // On app start, restore user session from localStorage
   useEffect(() => {
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
-
-    // If token exists, user is logged in
     if (token && savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch {
+        // Corrupted data — clear it
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
-
-    // Stop loading after check is complete
     setLoading(false);
   }, []);
 
-  /**
-   * Login function - called after successful authentication
-   * @param {object} userData - User object from backend (contains username, email, userId)
-   * @param {string} token - JWT token from backend
-   */
+  // Called after successful login or signup
   const login = (userData, token) => {
-    // Save token for API requests
     localStorage.setItem('token', token);
-    
-    // Save user data for display
     localStorage.setItem('user', JSON.stringify(userData));
-    
-    // Update state to reflect logged-in user
     setUser(userData);
   };
 
-  /**
-   * Logout function - called when user wants to logout
-   */
   const logout = () => {
-    // Clear all stored data
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    
-    // Clear user state
     setUser(null);
   };
 
-  /**
-   * Check if user is currently logged in
-   * @returns {boolean} - True if user is logged in
-   */
-  const isAuthenticated = () => {
-    return !!user && !!localStorage.getItem('token');
-  };
-
-  // Provide context values to all child components
-  const value = {
-    user,
-    loading,
-    login,
-    logout,
-    isAuthenticated,
-  };
+  const isAuthenticated = () => !!user && !!localStorage.getItem('token');
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, loading, login, logout, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-/**
- * Custom hook to use Auth Context
- * Use this hook in any component to access authentication state
- * Example: const { user, login, logout } = useAuth();
- */
+// Custom hook — use this in every component that needs auth state
 export const useAuth = () => {
-  const context = React.useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
-  }
-  return context;
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
+  return ctx;
 };
