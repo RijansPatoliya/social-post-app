@@ -1,134 +1,64 @@
-// ============================================
-// Main App Component
-// ============================================
-// Root component that handles routing between authentication and feed
-// Also sets up Material UI theme and global styles
-
 import React, { useState } from 'react';
-import { ThemeProvider, createTheme, Box, CircularProgress } from '@mui/material';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { ThemeProvider, createTheme, Box, CssBaseline, CircularProgress } from '@mui/material';
 import { useAuth } from './context/AuthContext';
-import Signup from './components/Signup';
+import Navbar from './components/Navbar';
 import Login from './components/Login';
-import Feed from './components/Feed';
+import Signup from './components/Signup';
+import FeedPage from './pages/FeedPage';
+import CreatePage from './pages/CreatePage';
+import ProfilePage from './pages/ProfilePage';
 
-/**
- * Create Material UI Theme
- * Customizes colors, typography, and component styles
- */
 const theme = createTheme({
   palette: {
-    primary: {
-      main: '#1976d2', // Blue - matches TaskPlanet branding
-    },
-    secondary: {
-      main: '#f50057',
-    },
-    background: {
-      default: '#f5f5f5',
-    },
+    primary: { main: '#1976d2' },
+    background: { default: '#f0f2f5' },
   },
-  typography: {
-    fontFamily: [
-      '-apple-system',
-      'BlinkMacSystemFont',
-      '"Segoe UI"',
-      'Roboto',
-      '"Helvetica Neue"',
-      'Arial',
-      'sans-serif',
-    ].join(','),
-    h4: {
-      fontWeight: 600,
-    },
-    h5: {
-      fontWeight: 600,
-    },
-    h6: {
-      fontWeight: 600,
-    },
-  },
+  typography: { fontFamily: '"Segoe UI", Roboto, Arial, sans-serif' },
+  shape: { borderRadius: 10 },
   components: {
-    // Customize Button styling
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-          fontWeight: 500,
-          borderRadius: '8px',
-        },
-      },
-    },
-    // Customize TextField styling
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            borderRadius: '8px',
-          },
-        },
-      },
-    },
-    // Customize Card styling
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: '12px',
-        },
-      },
-    },
+    MuiButton: { styleOverrides: { root: { textTransform: 'none' } } },
   },
 });
 
-/**
- * App Component
- * Main application component that handles:
- * - Authentication state (logged in or not)
- * - Switching between auth screens and feed
- * - Theme provider setup
- */
 const App = () => {
-  // Get authentication state and loading status
   const { isAuthenticated, loading } = useAuth();
-
-  // State to track which auth screen to show (signup or login)
   const [showLogin, setShowLogin] = useState(false);
 
-  // Show loading spinner while checking auth status
+  // Wait for localStorage to be read before deciding which screen to show
   if (loading) {
     return (
-      <Box
-        sx={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          minHeight: '100vh',
-          backgroundColor: '#f5f5f5',
-        }}
-      >
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
         <CircularProgress />
       </Box>
     );
   }
 
-  // If user is authenticated, show the feed
-  if (isAuthenticated()) {
+  // Not logged in — show auth screens
+  if (!isAuthenticated()) {
     return (
       <ThemeProvider theme={theme}>
-        <Feed />
+        <CssBaseline />
+        {showLogin
+          ? <Login onSwitchToSignup={() => setShowLogin(false)} />
+          : <Signup onSwitchToLogin={() => setShowLogin(true)} />}
       </ThemeProvider>
     );
   }
 
-  // If not authenticated, show auth screens
+  // Logged in — show app with navbar and routes
   return (
     <ThemeProvider theme={theme}>
-      {showLogin ? (
-        // Show login screen
-        <Login onSwitchToSignup={() => setShowLogin(false)} />
-      ) : (
-        // Show signup screen
-        <Signup onSwitchToLogin={() => setShowLogin(true)} />
-      )}
+      <CssBaseline />
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<FeedPage />} />
+          <Route path="/create" element={<CreatePage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Box>
     </ThemeProvider>
   );
 };
