@@ -2,36 +2,32 @@ import Post from '../models/Post.js';
 import User from '../models/User.js';
 import imagekit from '../config/imagekit.js';
 
+// Create post
 export const createPost = async (req, res) => {
   try {
     const { text } = req.body;
 
     if (!text?.trim() && !req.file) {
       return res.status(400).json({
-        success: false,
-        message: 'Text or image is required',
+        message: 'Text or image is required'
       });
     }
 
     const user = await User.findById(req.user.id);
-
     if (!user) {
       return res.status(404).json({
-        success: false,
-        message: 'User not found',
+        message: 'User not found'
       });
     }
 
     let imageUrl = '';
-
     if (req.file) {
-      const uploadResponse = await imagekit.upload({
+      const uploaded = await imagekit.upload({
         file: req.file.buffer,
         fileName: req.file.originalname,
         folder: '/social-posts',
       });
-
-      imageUrl = uploadResponse.url;
+      imageUrl = uploaded.url;
     }
 
     const post = await Post.create({
@@ -42,168 +38,163 @@ export const createPost = async (req, res) => {
     });
 
     res.status(201).json({
-      success: true,
       message: 'Post created',
-      post: {
-        id: post._id,
-        userId: post.userId,
-        username: post.username,
-        text: post.text,
-        image: post.image,
-        likesCount: 0,
-        commentsCount: 0,
-        createdAt: post.createdAt,
-      },
+      post: post
     });
   } catch (error) {
     res.status(500).json({
-      success: false,
-      message: 'Server error, please try again',
+      message: 'Error creating post'
     });
   }
 };
 
+// Get all posts
 export const getFeed = async (req, res) => {
   try {
     const posts = await Post.find().sort({ createdAt: -1 });
-
-    const feed = posts.map((post) => ({
-      id: post._id,
-      userId: post.userId,
-      username: post.username,
-      text: post.text,
-      image: post.image,
-      likesCount: post.likes.length,
-      commentsCount: post.comments.length,
-      createdAt: post.createdAt,
-    }));
-
+    
     res.status(200).json({
-      success: true,
-      posts: feed,
+      message: 'Posts fetched',
+      posts: posts
     });
   } catch (error) {
     res.status(500).json({
-      success: false,
-      message: 'Server error, please try again',
+      message: 'Error fetching posts'
     });
   }
 };
 
+// Get user's posts
+export const getUserPosts = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const posts = await Post.find({ userId: userId }).sort({ createdAt: -1 });
+    
+    res.status(200).json({
+      message: 'User posts fetched',
+      posts: posts
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Error fetching user posts'
+    });
+  }
+};
+
+// Like or unlike post
 export const likePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id);
-
     if (!post) {
       return res.status(404).json({
-        success: false,
-        message: 'Post not found',
+        message: 'Post not found'
       });
     }
 
-    const likeIndex = post.likes.findIndex(
-      (like) => like.userId.toString() === req.user.id
-    );
+    const userId = req.user.id;
+    const isLiked = post.likes.some(like => like.userId.toString() === userId);
 
-    // already liked → remove (unlike)
-    if (likeIndex !== -1) {
-      post.likes.splice(likeIndex, 1);
+    if (isLiked) {
+      post.likes = post.likes.filter(like => like.userId.toString() !== userId);
       await post.save();
-
+      
       return res.status(200).json({
-        success: true,
         liked: false,
-        likesCount: post.likes.length,
+        post: post
       });
     }
 
-    // not liked yet → add like
-    const user = await User.findById(req.user.id);
-
+    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
-        success: false,
-        message: 'User not found',
+        message: 'User not found'
       });
     }
 
     post.likes.push({
       userId: user._id,
-      username: user.username,
+      username: user.username
     });
-
     await post.save();
 
     res.status(200).json({
-      success: true,
       liked: true,
-      likesCount: post.likes.length,
+      post: post
     });
   } catch (error) {
     res.status(500).json({
-      success: false,
-      message: 'Server error, please try again',
+      message: 'Error liking post'
     });
   }
 };
 
+// Add comment
 export const addComment = async (req, res) => {
   try {
     const { text } = req.body;
-
-    if (!text || !text.trim()) {
+    
+    if (!text?.trim()) {
       return res.status(400).json({
-        success: false,
-        message: 'Comment text is required',
+        message: 'Comment is required'
       });
     }
 
     const post = await Post.findById(req.params.id);
-
     if (!post) {
       return res.status(404).json({
-        success: false,
-        message: 'Post not found',
+        message: 'Post not found'
       });
     }
 
     const user = await User.findById(req.user.id);
-
     if (!user) {
       return res.status(404).json({
-        success: false,
-        message: 'User not found',
+        message: 'User not found'
       });
     }
 
     post.comments.push({
       userId: user._id,
       username: user.username,
-      text: text.trim(),
+      text: text.trim()
     });
-
     await post.save();
 
     res.status(200).json({
-      success: true,
-      message: 'Comment added',
-      post: {
-        id: post._id,
-        userId: post.userId,
-        username: post.username,
-        text: post.text,
-        image: post.image,
-        likes: post.likes,
-        comments: post.comments,
-        likesCount: post.likes.length,
-        commentsCount: post.comments.length,
-        createdAt: post.createdAt,
-      },
+      post: post
     });
   } catch (error) {
     res.status(500).json({
-      success: false,
-      message: 'Server error, please try again',
+      message: 'Error adding comment'
+    });
+  }
+};
+
+// Delete post
+export const deletePost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id);
+    if (!post) {
+      return res.status(404).json({
+        message: 'Post not found'
+      });
+    }
+
+    if (post.userId.toString() !== req.user.id) {
+      return res.status(403).json({
+        message: 'Cannot delete other posts'
+      });
+    }
+
+    await Post.findByIdAndDelete(req.params.id);
+    
+    res.status(200).json({
+      message: 'Post deleted'
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: 'Error deleting post'
     });
   }
 };

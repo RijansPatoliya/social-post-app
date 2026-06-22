@@ -1,4 +1,3 @@
-// src/controllers/authController.js
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
@@ -19,30 +18,30 @@ export const signup = async (req, res) => {
       });
     }
 
-    // Check if email is valid format (gmail only)
+    // Check if email is @gmail.com
     if (!email.toLowerCase().endsWith('@gmail.com')) {
       return res.status(400).json({
-        message: 'Email format is not valid',  
+        message: 'Email format is not valid',
       });
     }
 
-    // Check if username already exists
-    const existingUsername = await User.findOne({
-      username: username.toLowerCase(),
-    });
-    if (existingUsername) {
-      return res.status(409).json({
-        message: 'Username is already taken',
-      });
-    }
-
-    // Check if email already exists
+    // Check if email already exists FIRST
     const existingEmail = await User.findOne({
       email: email.toLowerCase(),
     });
     if (existingEmail) {
       return res.status(409).json({
-        message: 'Email is already registered',
+        message: 'User already registered',  // ✅ Changed!
+      });
+    }
+
+    // Then check if username already exists
+    const existingUsername = await User.findOne({
+      username: username.toLowerCase(),
+    });
+    if (existingUsername) {
+      return res.status(409).json({
+        message: 'Username already taken',
       });
     }
 
@@ -75,11 +74,16 @@ export const signup = async (req, res) => {
       token,
     });
   } catch (error) {
-    // Handle duplicate key errors
+    // Handle duplicate key errors from MongoDB
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
+      if (field === 'email') {
+        return res.status(409).json({
+          message: 'User already registered',
+        });
+      }
       return res.status(409).json({
-        message: `${field.charAt(0).toUpperCase() + field.slice(1)} is already taken`,
+        message: `${field.charAt(0).toUpperCase() + field.slice(1)} already taken`,
       });
     }
 
@@ -104,10 +108,10 @@ export const login = async (req, res) => {
       });
     }
 
-      // Check if email is valid format
+    // Check if email is @gmail.com
     if (!email.toLowerCase().endsWith('@gmail.com')) {
       return res.status(400).json({
-        message: 'Email format is not valid', 
+        message: 'Email format is not valid',
       });
     }
 
